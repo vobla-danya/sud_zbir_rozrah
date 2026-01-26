@@ -61,7 +61,8 @@ class CourtFeeCalcApp:
             main_frame,
             text="Розрахунок судового збору",
             font=("Arial", 18, "bold"),
-            fg="#ffffff"
+            fg="#ffffff",
+            background="black"
         )
         title_label.grid(row = 0, column = 0, columnspan=2, pady=(0, 20))
 
