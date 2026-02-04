@@ -182,7 +182,7 @@ class CourtFeeCalcApp:
 
             result_text = f"""
 {'=' *50}
-    СУДОВИЙ ЗБІР: {zbir: 2f} грн
+    СУДОВИЙ ЗБІР: {zbir: .2f} грн
 {'=' *50}
                     """
 
