@@ -1,11 +1,25 @@
-# Шо для розрахунку треба:
-# Спитати який рік, в залежності від цього застосувати константу
-# Спитати кількість зобовʼязальних вимог, відносно цього множити
-# Уточнити, чи це апеляція, чи касація і в залежності від цього застосувати коефіцієнт
-# Помножити на 0.8 бо це через систему електронний суд
-import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import Optional
+import sys
+import os
+import customtkinter as ctk
+from tkinter import messagebox
+
+def get_fonts_dir() -> str:
+    if getattr(sys, 'frozen', False):
+        return os.path.join(os.path.dirname(sys.executable), 'fonts')
+    else:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
+
+def load_uaf_fonts():
+    try:
+        import pyglet
+        fonts_dir = get_fonts_dir()
+        for fname in os.listdir(fonts_dir):
+            if fname.lower().endswith('.ttf'):
+                pyglet.font.add_file(os.path.join(fonts_dir, fname))
+    except Exception:
+        pass  
+
+load_uaf_fonts()
 
 PROZHITKOVY_MINIMUM = {
     2024: 1211.20,
@@ -14,198 +28,234 @@ PROZHITKOVY_MINIMUM = {
 }
 
 INSTANTSIA_KOEF = {
-    1: 1,
+    1: 1.0,
     2: 1.5,
-    3: 2
+    3: 2.0
+}
+
+INSTANTSIA_LABELS = {
+    1: "І інстанція",
+    2: "ІІ інстанція (апеляція)",
+    3: "ІІІ інстанція (касація)"
 }
 
 ELEKTRONNUI_SUD_KOEF = 0.8
 
-def rozrahunok(rik: int, vymogy: int, inst: int, use_el_sud: bool = True) -> Optional[float]:
-    try:
-        if rik < 100:
-            rik = 2000 + rik
+STEP        = "#6A653A"
+STEP_DARK   = "#4A4730"
+STEP_LIGHT  = "#9A956A"
+CREAM       = "#F0EFE7"
+CREAM_DARK  = "#E2E1D8"
+INK         = "#1A1A1A"
+INK_SOFT    = "#4A4A4A"
+SUCCESS     = "#4A7C59"
 
-        if rik not in PROZHITKOVY_MINIMUM:
-            raise ValueError(f"Прожитковий мінімум для {rik} не задано.")
+FONT_REGULAR   = "UAF Sans"
+FONT_FALLBACK  = "Segoe UI"   # якщо UAF Sans не завантажився
 
-        if inst not in INSTANTSIA_KOEF:
-            raise ValueError("Некоректна інстанція")
+def uaf(size: int, weight: str = "normal") -> ctk.CTkFont:
+    return ctk.CTkFont(family=FONT_REGULAR, size=size, weight=weight)
 
-        prozhitk = PROZHITKOVY_MINIMUM[rik]
-        instantzia = INSTANTSIA_KOEF[inst]
-        el_sud_koef = ELEKTRONNUI_SUD_KOEF if use_el_sud else 1.0
 
-        result = prozhitk * instantzia * vymogy * el_sud_koef
-        return result
-    except Exception as e:
-        raise e
+def rozrahunok(rik: int, vymogy: int, inst: int, use_el_sud: bool = True) -> float:
+    if rik not in PROZHITKOVY_MINIMUM:
+        raise ValueError(f"Прожитковий мінімум для {rik} не задано.")
+    if inst not in INSTANTSIA_KOEF:
+        raise ValueError("Некоректна інстанція.")
 
-class CourtFeeCalcApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Розрахунок судового збору")
-        self.root.geometry("600x600")
-        self.root.resizable(False, False)
+    prozhitk   = PROZHITKOVY_MINIMUM[rik]
+    instantzia = INSTANTSIA_KOEF[inst]
+    el_sud     = ELEKTRONNUI_SUD_KOEF if use_el_sud else 1.0
+    return prozhitk * instantzia * vymogy * el_sud
 
-        style = ttk.Style()
-        style.theme_use('clam')
 
-        self.create_widgets()
+class CourtFeeCalcApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
 
-    def create_widgets(self):
-        main_frame = ttk.Frame(self.root, padding="20")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("green")
 
-        title_label = tk.Label(
-            main_frame,
-            text="Розрахунок судового збору",
-            font=("Arial", 18, "bold"),
-            fg="#ffffff",
-            background="black"
-        )
-        title_label.grid(row = 0, column = 0, columnspan=2, pady=(0, 20))
+        self.title("Розрахунок судового збору — в/ч А3913")
+        self.geometry("580x680")
+        self.resizable(False, False)
+        self.configure(fg_color=CREAM)
 
-        ttk.Label(main_frame, text="Оберіть рік позовного провадження: ", font=("Arial", 11)).grid(
-            row=1, column=0, sticky=tk.W, pady=10
-        )
-        self.rik_var = tk.StringVar(value="2025")
-        rik_combo = ttk.Combobox(
-            main_frame,
-            textvariable=self.rik_var,
-            values=list(PROZHITKOVY_MINIMUM.keys()),
+        self._build_ui()
+
+    def _build_ui(self):
+        header = ctk.CTkFrame(self, fg_color=STEP, corner_radius=0, height=80)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+
+        ctk.CTkLabel(
+            header,
+            text="РОЗРАХУНОК СУДОВОГО ЗБОРУ",
+            font=uaf(16, "bold"),
+            text_color=CREAM,
+        ).place(relx=0.5, rely=0.42, anchor="center")
+
+        ctk.CTkLabel(
+            header,
+            text="в/ч А3913 · 12-а ОБАА",
+            font=uaf(10),
+            text_color=STEP_LIGHT,
+        ).place(relx=0.5, rely=0.75, anchor="center")
+
+        body = ctk.CTkFrame(self, fg_color=CREAM, corner_radius=0)
+        body.pack(fill="both", expand=True, padx=30, pady=24)
+
+        self._section_label(body, "РІК ПОЗОВНОГО ПРОВАДЖЕННЯ", 0)
+        self.rik_var = ctk.StringVar(value="2025")
+        ctk.CTkComboBox(
+            body,
+            variable=self.rik_var,
+            values=[str(y) for y in PROZHITKOVY_MINIMUM.keys()],
             state="readonly",
-            width=25,
-            font=("Arial", 10)
-        )
-        rik_combo.grid(row = 1, column = 1, sticky=tk.W, pady=10)
+            width=300, height=38,
+            font=uaf(13),
+            fg_color=CREAM_DARK,
+            border_color=STEP, border_width=1,
+            button_color=STEP, button_hover_color=STEP_DARK,
+            dropdown_fg_color=CREAM, dropdown_hover_color=CREAM_DARK,
+            text_color=INK,
+        ).grid(row=1, column=0, sticky="w", pady=(2, 16))
 
-        ttk.Label(main_frame, text="Кількість зобовʼязальних вимог: ", font=("Arial", 11)).grid(
-            row = 2, column = 0, sticky=tk.W, pady=10
-        )
-        self.vymog_var = tk.StringVar(value="1")
-        vymog_spinbox = ttk.Spinbox(
-            main_frame,
-            from_= 1,
-            to=100,
+        self._section_label(body, "КІЛЬКІСТЬ ЗОБОВ'ЯЗАЛЬНИХ ВИМОГ", 2)
+        self.vymog_var = ctk.StringVar(value="1")
+        ctk.CTkEntry(
+            body,
             textvariable=self.vymog_var,
-            width=24,
-            font=("Arial", 10)
-        )
-        vymog_spinbox.grid(row=2, column=1, sticky=tk.W, pady=10)
+            width=300, height=38,
+            font=uaf(13),
+            fg_color=CREAM_DARK,
+            border_color=STEP, border_width=1,
+            text_color=INK,
+        ).grid(row=3, column=0, sticky="w", pady=(2, 16))
 
-        ttk.Label(main_frame, text="Інстанція: ", font=("Arial", 11)).grid(
-            row=3, column=0, sticky=tk.W, pady=10
-        )
-        self.insta_var = tk.StringVar(value="1")
-        insta_combo = ttk.Combobox(
-            main_frame,
-            textvariable=self.insta_var,
-            values=list(INSTANTSIA_KOEF.keys()),
+        self._section_label(body, "СУДОВА ІНСТАНЦІЯ", 4)
+        self.insta_var = ctk.StringVar(value="І інстанція")
+        ctk.CTkComboBox(
+            body,
+            variable=self.insta_var,
+            values=list(INSTANTSIA_LABELS.values()),
             state="readonly",
-            width=25,
-            font=("Arial", 10)
-        )
-        insta_combo.grid(row=3, column=1, sticky=tk.W, pady=10)
+            width=300, height=38,
+            font=uaf(13),
+            fg_color=CREAM_DARK,
+            border_color=STEP, border_width=1,
+            button_color=STEP, button_hover_color=STEP_DARK,
+            dropdown_fg_color=CREAM, dropdown_hover_color=CREAM_DARK,
+            text_color=INK,
+        ).grid(row=5, column=0, sticky="w", pady=(2, 16))
 
-        el_sud_label = tk.Label(
-            main_frame,
-            text="Коефіцієнт Електронного суду: 0.8",
-            font=("Arial", 10, "italic"),
-            fg="#27ae60"
-        )
-        el_sud_label.grid(row = 4, column=0, columnspan=2, pady=10)
+        badge = ctk.CTkFrame(body, fg_color=CREAM_DARK, corner_radius=6, height=32)
+        badge.grid(row=6, column=0, sticky="w", pady=(0, 20))
+        ctk.CTkLabel(
+            badge,
+            text="  ⚖  Коефіцієнт «Електронний суд»: 0.8  ",
+            font=uaf(11),
+            text_color=STEP_DARK,
+        ).pack(padx=8, pady=4)
 
-        calc_button = tk.Button(
-            main_frame,
+        ctk.CTkButton(
+            body,
             text="РОЗРАХУВАТИ",
-            command=self.calculate,
-            bg="#3498db",
-            fg="black",
-            font=("Arial", 12, "bold"),
-            cursor = "hand2",
-            relief = tk.FLAT,
-            padx=20,
-            pady=10
+            command=self._calculate,
+            width=300, height=44,
+            font=uaf(14, "bold"),
+            fg_color=STEP, hover_color=STEP_DARK,
+            text_color=CREAM,
+            corner_radius=4,
+        ).grid(row=7, column=0, sticky="w", pady=(0, 20))
+        
+        self.result_card = ctk.CTkFrame(
+            body,
+            fg_color=CREAM_DARK,
+            corner_radius=8,
+            border_width=1,
+            border_color=STEP_LIGHT,
         )
-        calc_button.grid(row=5, column=0, columnspan=2, pady=20)
+        self.result_card.grid(row=8, column=0, sticky="ew", pady=(0, 8))
 
-        result_frame = tk.LabelFrame(
-            main_frame,
-            text="Деталі розрахунку",
-            font = ("Arial", 11, "bold"),
-            fg="#ffffff",
-            padx=15,
-            pady=15
+        self.result_label = ctk.CTkLabel(
+            self.result_card,
+            text="",
+            font=uaf(12),
+            text_color=INK_SOFT,
+            justify="left",
+            wraplength=480,
         )
-        result_frame.grid(row = 6, column = 0, columnspan = 2, sticky=(tk.W, tk.E), pady=10)
+        self.result_label.pack(padx=20, pady=16, anchor="w")
 
-        self.result_text = tk.Text(
-            result_frame,
-            height = 10,
-            width = 55,
-            font=("Courier New", 10),
-            bg="#194685",
-            relief=tk.FLAT,
-            state=tk.DISABLED
-        )
-        self.result_text.pack()
-
-        clear_button = tk.Button(
-            main_frame,
+        ctk.CTkButton(
+            body,
             text="Очистити",
-            command=self.clear_result,
-            bg="#95a5a6",
-            fg="black",
-            font=("Arial", 10),
-            cursor="hand2",
-            relief=tk.FLAT,
-            padx=15,
-            pady=5
-        )
-        clear_button.grid(row=7, column=0, columnspan=2, pady=5)
+            command=self._clear,
+            width=120, height=32,
+            font=uaf(11),
+            fg_color=CREAM_DARK, hover_color=STEP_LIGHT,
+            text_color=INK_SOFT,
+            border_width=1, border_color=STEP_LIGHT,
+            corner_radius=4,
+        ).grid(row=9, column=0, sticky="w")
 
-    def calculate(self):
+    def _section_label(self, parent, text: str, row: int):
+        ctk.CTkLabel(
+            parent,
+            text=text,
+            font=uaf(10, "bold"),
+            text_color=STEP,
+        ).grid(row=row, column=0, sticky="w", pady=(0, 2))
+
+    def _get_inst_key(self) -> int:
+        label = self.insta_var.get()
+        for k, v in INSTANTSIA_LABELS.items():
+            if v == label:
+                return k
+        raise ValueError("Некоректна інстанція")
+
+    def _calculate(self):
         try:
-            rik = int(self.rik_var.get())
-            kilk_vymog = int(self.vymog_var.get())
-            instanzia = int(self.insta_var.get())
-
-            if kilk_vymog < 1:
-                messagebox.showerror("Помилка", "Кількість вимог має бути більше 0")
+            rik    = int(self.rik_var.get())
+            vymogy = int(self.vymog_var.get())
+            if vymogy < 1:
+                messagebox.showerror("Помилка", "Кількість вимог має бути більше 0.")
                 return
+            inst = self._get_inst_key()
 
-            zbir = rozrahunok(rik, kilk_vymog, instanzia, True)
+            zbir       = rozrahunok(rik, vymogy, inst, True)
+            prozhitk   = PROZHITKOVY_MINIMUM[rik]
+            inst_koef  = INSTANTSIA_KOEF[inst]
+            inst_label = INSTANTSIA_LABELS[inst]
 
-            rik = PROZHITKOVY_MINIMUM[rik]
-            instanzia = INSTANTSIA_KOEF[instanzia]
+            lines = (
+                f"Рік:                  {rik}\n"
+                f"Прожитковий мінімум:  {prozhitk:.2f} грн\n"
+                f"Інстанція:            {inst_label}  (×{inst_koef})\n"
+                f"Кількість вимог:      {vymogy}\n"
+                f"Коеф. електр. суду:   {ELEKTRONNUI_SUD_KOEF}\n"
+                f"{'─' * 38}\n"
+                f"СУДОВИЙ ЗБІР:         {zbir:.2f} грн"
+            )
 
-            result_text = f"""
-{'=' *50}
-    СУДОВИЙ ЗБІР: {zbir: .2f} грн
-{'=' *50}
-                    """
-
-            self.result_text.config(state=tk.NORMAL)
-            self.result_text.delete(1.0, tk.END)
-            self.result_text.insert(1.0, result_text)
-            self.result_text.config(state=tk.DISABLED)
-
+            self.result_label.configure(
+                text=lines,
+                text_color=SUCCESS,
+                font=uaf(12, "bold"),
+            )
         except ValueError as e:
-            messagebox.showerror("Помилка", f"Помилка введення: {e}")
+            messagebox.showerror("Помилка введення", str(e))
         except Exception as e:
             messagebox.showerror("Помилка", f"Несподівана помилка: {e}")
 
-    def clear_result(self):
-        self.result_text.config(state=tk.NORMAL)
-        self.result_text.delete(1.0, tk.END)
-        self.result_text.config(state=tk.DISABLED)
+    def _clear(self):
+        self.result_label.configure(text="", text_color=INK_SOFT, font=uaf(12))
+        self.rik_var.set("2025")
+        self.vymog_var.set("1")
+        self.insta_var.set("І інстанція")
 
-def main():
-    root = tk.Tk()
-    app = CourtFeeCalcApp(root)
-    root.mainloop()
 
 if __name__ == "__main__":
-    main()
-
+    app = CourtFeeCalcApp()
+    app.mainloop()
