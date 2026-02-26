@@ -1,15 +1,11 @@
 import sys
 import os
-from cx_Freeze import setup, Executable, BuildExeOptions
+from cx_Freeze import setup, Executable
 
-include_files = [
-    ("fonts", "fonts"),
-]
-
-build_exe_options = BuildExeOptions(
-    packages=["customtkinter", "pyglet"],
-    include_files=include_files,
-)
+build_exe_options = {
+    "packages": ["customtkinter", "pyglet"],
+    "include_files": [("fonts", "fonts")],
+}
 
 setup(
     name="rozrah",
