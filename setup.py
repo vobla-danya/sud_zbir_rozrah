@@ -4,7 +4,10 @@ from cx_Freeze import setup, Executable
 
 build_exe_options = {
     "packages": ["customtkinter", "pyglet"],
-    "include_files": [("fonts", "fonts")],
+    "include_files": [
+        ("fonts", "fonts"),
+        ("config.toml", "config.toml")
+    ],
 }
 
 setup(
