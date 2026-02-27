@@ -64,7 +64,7 @@ config = load_config()
 
 PROZHITKOVY_MINIMUM = {
     int(k): v
-    for k, v in config["PROZHITKOVYI_MINIMUM"].items()
+    for k, v in config["PROZHYTKOVYI_MINIMUM"].items()
 }
 
 INSTANTSIA_KOEF = {
