@@ -2,13 +2,16 @@ import sys
 import os
 import customtkinter as ctk
 from tkinter import messagebox
+import tomllib
 
+#Отримуємо шлях до директорії шрифтів
 def get_fonts_dir() -> str:
     if getattr(sys, 'frozen', False):
         return os.path.join(os.path.dirname(sys.executable), 'fonts')
     else:
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')
 
+#Завантажуємо шрифт
 def load_uaf_fonts():
     try:
         import pyglet
@@ -21,25 +24,61 @@ def load_uaf_fonts():
 
 load_uaf_fonts()
 
+#Отримуємо шлях до конфігу
+def get_config_path() -> str:
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(base, 'config.toml')
+
+def load_config() -> dict:
+    path = get_config_path()
+    try:
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+    except FileNotFoundError:
+        return DEFAULT_CONFIG
+    except tomllib.TOMLDecodeError:
+        messagebox.showerror("Помилка", "Файл config.toml пошкоджений.")
+        return DEFAULT_CONFIG
+
+
+DEFAULT_CONFIG = {
+    "PROZHITKOVY_MINIMUM": {
+        "2024": 1211.20,
+        "2025": 1211.20,
+        "2026": 1331.20
+    },
+    "INSTANTSIA_KOEF": {
+        "1": 1.0,
+        "2": 1.5,
+        "3": 2.0
+    },
+    "ELEKTRONNUI_SUD_KOEF": 0.8
+}
+
+#Завантаження значень з config.toml
+config = load_config()
+
 PROZHITKOVY_MINIMUM = {
-    2024: 1211.20,
-    2025: 1211.20,
-    2026: 1331.20
+    int(k): v
+    for k, v in config["PROZHITKOVY_MINIMUM"].items()
 }
 
 INSTANTSIA_KOEF = {
-    1: 1.0,
-    2: 1.5,
-    3: 2.0
+    int(k): v
+    for k, v in config["INSTANTSIA_KOEF"].items()
 }
+
+ELEKTRONNUI_SUD_KOEF = config["ELEKTRONNUI_SUD_KOEF"]
 
 INSTANTSIA_LABELS = {
     1: "І інстанція",
     2: "ІІ інстанція (апеляція)",
     3: "ІІІ інстанція (касація)"
 }
-
-ELEKTRONNUI_SUD_KOEF = 0.8
 
 STEP        = "#6A653A"
 STEP_DARK   = "#4A4730"
@@ -53,10 +92,11 @@ SUCCESS     = "#4A7C59"
 FONT_REGULAR   = "UAF Sans"
 FONT_FALLBACK  = "Segoe UI"   # якщо UAF Sans не завантажився
 
+#Завантаження шрифту для customtkinter
 def uaf(size: int, weight: str = "normal") -> ctk.CTkFont:
     return ctk.CTkFont(family=FONT_REGULAR, size=size, weight=weight)
 
-
+#Функція розрахунку
 def rozrahunok(rik: int, vymogy: int, inst: int, use_el_sud: bool = True) -> float:
     if rik not in PROZHITKOVY_MINIMUM:
         raise ValueError(f"Прожитковий мінімум для {rik} не задано.")
@@ -68,7 +108,7 @@ def rozrahunok(rik: int, vymogy: int, inst: int, use_el_sud: bool = True) -> flo
     el_sud     = ELEKTRONNUI_SUD_KOEF if use_el_sud else 1.0
     return prozhitk * instantzia * vymogy * el_sud
 
-
+#Клас для GUI
 class CourtFeeCalcApp(ctk.CTk):
     def __init__(self):
         super().__init__()
